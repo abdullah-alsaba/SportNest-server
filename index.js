@@ -34,6 +34,11 @@ async function run() {
           const result = await cursor.toArray()
           res.send(result)
       })
+      app.post("/sports", async (req, res) => {
+          const cursor = sportCollection.find()
+          const result = await cursor.toArray()
+          res.send(result)
+      })
 
 
 
