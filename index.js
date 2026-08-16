@@ -10,7 +10,7 @@ const port = process.env.PORT
 
 
 
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.MONGODB_URI; 
 
 const client = new MongoClient(uri, {
@@ -34,14 +34,21 @@ async function run() {
           const result = await cursor.toArray()
           res.send(result)
       })
-      app.post("/sports", async (req, res) => {
-          const cursor = sportCollection.find()
-          const result = await cursor.toArray()
-          res.send(result)
-      })
 
 
+    app.get("/sports/:facilityId", async (req,res)=>{
 
+      const {facilityId}= req.params 
+      const query = {_id: new ObjectId(facilityId)}
+
+      const result = await sportCollection.findOne(query)
+
+      res.send(result)
+        
+      
+      
+      
+      } );
 
 
 
