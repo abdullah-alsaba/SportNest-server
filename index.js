@@ -55,6 +55,13 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/bookings/:user_id", async (req, res)=>{
+      const { user_id } = req.params
+      const result = await bookingCollection.find({ user_id }).toArray()
+      
+      res.send(result)
+    })
+
 
 
     app.post("/bookings", async (req, res) => {
@@ -66,7 +73,15 @@ async function run() {
     });
 
 
-    
+    app.delete("/bookings/:booking_id", async (req, res) => {
+      const { booking_id } = req.params 
+      const result = await bookingCollection.deleteOne({ _id: new ObjectId(booking_id) })
+      
+      res.send(result);
+    })
+
+
+
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
