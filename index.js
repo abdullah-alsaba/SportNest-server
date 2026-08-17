@@ -12,6 +12,7 @@ app.use(express.json());
 const port = process.env.PORT || 8686;
 
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 
 const uri = process.env.MONGODB_URI;
 
@@ -33,6 +34,43 @@ async function run() {
     const sportCollection = db.collection("sports");
     const bookingCollection = db.collection("bookings");
 
+    const JWKS = createRemoteJWKSet(
+      new URL(`${process.env.PUBLIC_URI}/api/auth/jwks`),
+    );
+
+    const verifyToken = async (req, res, next) => {
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader) {
+        return res.status(401).json({
+          message: "Unauthorized",
+        });
+      }
+
+      const token = authHeader.split(" ")[1];
+
+      if (!token) {
+        return res.status(401).json({
+          message: "Unauthorized",
+        });
+      }
+
+      try {
+        const { payload } = await jwtVerify(token, JWKS);
+
+        
+
+        req.user = payload;
+
+        next();
+      } catch (error) {
+        console.log("JWT Error:", error);
+
+        return res.status(403).json({
+          message: "Forbidden",
+        });
+      }
+    };
 
     app.get("/sports", async (req, res) => {
       const cursor = sportCollection.find();
@@ -41,9 +79,7 @@ async function run() {
       res.send(result);
     });
 
-
-
-    app.get("/sports/:facilityId", async (req, res) => {
+    app.get("/sports/:facilityId", verifyToken, async (req, res) => {
       const { facilityId } = req.params;
 
       const query = {
@@ -55,22 +91,27 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/sports', async (req, res) => {
-      const facilityData = req.body 
-      const result = await sportCollection.insertOne(facilityData)
-      res.send(result) 
-    })
+    app.post("/sports", async (req, res) => {
+      const facilityData = req.body;
+      const result = await sportCollection.insertOne(facilityData);
+      res.send(result);
+    });
 
-    app.get("/bookings/:user_id", async (req, res)=>{
-      const { user_id } = req.params
-      const result = await bookingCollection.find({ user_id }).toArray()
-      
-      res.send(result)
-    })
+    app.get("/bookings/:user_id", verifyToken, async (req, res) => {
+      const { user_id } = req.params;
 
+      if (req.user.id !== user_id) {
+        return res.status(403).json({
+          message: "Forbidden",
+        });
+      }
 
+      const result = await bookingCollection.find({ user_id }).toArray();
 
-    app.post("/bookings", async (req, res) => {
+      res.send(result);
+    });
+
+    app.post("/bookings", verifyToken, async (req, res) => {
       const bookingData = req.body;
 
       const result = await bookingCollection.insertOne(bookingData);
@@ -78,25 +119,26 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/bookings/:booking_id", verifyToken, async (req, res) => {
+      const { booking_id } = req.params;
 
-    app.delete("/bookings/:booking_id", async (req, res) => {
-      const { booking_id } = req.params 
-      const result = await bookingCollection.deleteOne({ _id: new ObjectId(booking_id) })
-      
+      const result = await bookingCollection.deleteOne({
+        _id: new ObjectId(booking_id),
+        user_id: req.user.id,
+      });
+
       res.send(result);
-    })
-
-
+    });
 
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
     );
+
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
   } finally {
   }
 }
 
 run().catch(console.dir);
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
