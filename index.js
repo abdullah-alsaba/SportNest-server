@@ -55,6 +55,12 @@ async function run() {
       res.send(result);
     });
 
+    app.post('/sports', async (req, res) => {
+      const facilityData = req.body 
+      const result = await sportCollection.insertOne(facilityData)
+      res.send(result) 
+    })
+
     app.get("/bookings/:user_id", async (req, res)=>{
       const { user_id } = req.params
       const result = await bookingCollection.find({ user_id }).toArray()
