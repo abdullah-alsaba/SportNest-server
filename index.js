@@ -72,6 +72,10 @@ async function run() {
       }
     };
 
+    app.get("/", (req, res) => {
+      res.send("SportNest Server is Running");
+    });
+
     app.get("/sports", async (req, res) => {
       const { search, type, email } = req.query;
 
