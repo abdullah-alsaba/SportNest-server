@@ -64,7 +64,7 @@ async function run() {
 
         next();
       } catch (error) {
-        console.log("JWT Error:", error);
+       
 
         return res.status(403).json({
           message: "Forbidden",
@@ -73,7 +73,20 @@ async function run() {
     };
 
     app.get("/sports", async (req, res) => {
-      const cursor = sportCollection.find();
+      const { search, type } = req.query;
+
+      const query = {};
+
+      if (search) {
+        query.name = { $regex: search, $options: "i" };
+      }
+
+      if (type && type !== "All Sports") {
+        const typesArray = type.split(",");
+        query.facility_type = { $in: typesArray };
+      }
+
+      const cursor = sportCollection.find(query);
       const result = await cursor.toArray();
 
       res.send(result);
