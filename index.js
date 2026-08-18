@@ -73,9 +73,13 @@ async function run() {
     };
 
     app.get("/sports", async (req, res) => {
-      const { search, type } = req.query;
+      const { search, type, email } = req.query;
 
       const query = {};
+
+      if (email) {
+        query.owner_email = email;
+      }
 
       if (search) {
         query.name = { $regex: search, $options: "i" };
@@ -107,6 +111,36 @@ async function run() {
     app.post("/sports", async (req, res) => {
       const facilityData = req.body;
       const result = await sportCollection.insertOne(facilityData);
+      res.send(result);
+    });
+
+    app.put("/sports/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
+
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          name: updatedData.name,
+          facility_type: updatedData.facility_type,
+          image: updatedData.image,
+          location: updatedData.location,
+          price_per_hour: Number(updatedData.price_per_hour),
+          capacity: Number(updatedData.capacity),
+          available_slots: updatedData.available_slots,
+          description: updatedData.description,
+        },
+      };
+
+      const result = await sportCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/sports/:id", async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+
+      const result = await sportCollection.deleteOne(query);
       res.send(result);
     });
 
